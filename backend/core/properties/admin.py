@@ -1,19 +1,44 @@
 from django.contrib import admin
+from django import forms
 from .models import Locality, LocalityProfile, Property
 from .tasks import enrich_locality_pipeline
+from .widgets import LocationAutocompleteWidget
+
+
+class LocalityAdminForm(forms.ModelForm):
+    class Meta:
+        model = Locality
+        fields = '__all__'
+        widgets = {
+            'latitude': forms.NumberInput(attrs={
+                'readonly': 'readonly',
+                'step': 'any'
+            }),
+            'longitude': forms.NumberInput(attrs={
+                'readonly': 'readonly',
+                'step': 'any'
+            }),
+        }
 
 @admin.register(Locality)
 class LocalityAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'city', 'latitude', 'longitude', 'has_profile', 'created_at')
+    form = LocalityAdminForm
+    list_display = ('id', 'name', 'city', 'location', 'latitude', 'longitude', 'has_profile', 'created_at')
     list_filter = ('city', 'created_at')
-    search_fields = ('name', 'city')
+    search_fields = ('name', 'city', 'location')
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'city')
         }),
+        ('Location', {
+            'fields': ('location',),
+            'description': 'Start typing a sector name, landmark, or area. Suggestions will appear automatically based on the city.'
+        }),
         ('Coordinates', {
-            'fields': ('latitude', 'longitude')
+            'fields': ('latitude', 'longitude'),
+            'description': 'These are auto-filled when you select a location from the autocomplete dropdown. They are read-only here.',
+            'classes': ('collapse',)
         }),
         ('Metadata', {
             'fields': ('created_at',),
@@ -21,6 +46,20 @@ class LocalityAdmin(admin.ModelAdmin):
         }),
     )
     actions = ['trigger_ai_analysis']
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Customize form to use LocationAutocompleteWidget"""
+        try:
+            form = super().get_form(request, obj, **kwargs)
+            # Use custom widget for location field if it exists
+            if 'location' in form.base_fields:
+                form.base_fields['location'].widget = LocationAutocompleteWidget(city_field_name='city')
+            return form
+        except Exception as e:
+            # Fallback to regular form if widget fails
+            import logging
+            logging.error(f"Error setting LocationAutocompleteWidget: {e}")
+            return super().get_form(request, obj, **kwargs)
     
     def has_profile(self, obj):
         """Display if locality has AI analysis profile"""

@@ -1,0 +1,7 @@
+<div class="location-autocomplete-container">
+    <input
+        type="text"
+        {% include "django/forms/widgets/attrs.html" with widget=widget %}
+        value="{{ widget.value }}"
+    >
+</div>

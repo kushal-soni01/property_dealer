@@ -66,7 +66,12 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Only include static dirs if they exist
+STATICFILES_DIRS = []
+if os.path.exists(os.path.join(BASE_DIR.parent, 'properties', 'static')):
+    STATICFILES_DIRS.append(os.path.join(BASE_DIR.parent, 'properties', 'static'))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
