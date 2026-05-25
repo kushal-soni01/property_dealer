@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import Locality, LocalityProfile, Property
+from .models import Locality, LocalityProfile, Property, PropertyImage, PropertyHistory, Chat, ChatMessage
 from .tasks import enrich_locality_pipeline
 from .widgets import LocationAutocompleteWidget
 
@@ -201,4 +201,79 @@ class PropertyAdmin(admin.ModelAdmin):
     def price_display(self, obj):
         """Format price for display"""
         return f"${obj.price:,.2f}"
-    price_display.short_description = "Price"
+
+
+@admin.register(PropertyImage)
+class PropertyImageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'property', 'is_primary', 'uploaded_at')
+    list_filter = ('is_primary', 'uploaded_at', 'property__locality__city')
+    search_fields = ('property__title', 'alt_text')
+    readonly_fields = ('uploaded_at',)
+    fieldsets = (
+        ('Image Information', {
+            'fields': ('property', 'image', 'alt_text', 'is_primary')
+        }),
+        ('Metadata', {
+            'fields': ('uploaded_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(PropertyHistory)
+class PropertyHistoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'property', 'change_type', 'changed_by', 'changed_at')
+    list_filter = ('change_type', 'changed_at', 'property__locality__city')
+    search_fields = ('property__title', 'description')
+    readonly_fields = ('property', 'change_type', 'old_value', 'new_value', 'changed_by', 'changed_at', 'description')
+    fieldsets = (
+        ('Change Information', {
+            'fields': ('property', 'change_type', 'changed_by', 'changed_at')
+        }),
+        ('Change Details', {
+            'fields': ('old_value', 'new_value', 'description'),
+            'classes': ('wide',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent manual creation of history entries"""
+        return False
+
+
+@admin.register(Chat)
+class ChatAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'property', 'admin', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active', 'created_at', 'property__locality__city')
+    search_fields = ('user__username', 'property__title', 'admin__username')
+    readonly_fields = ('user', 'property', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Chat Information', {
+            'fields': ('user', 'property', 'admin', 'is_active')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Chats are created via API when users express interest in a property"""
+        return False
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'chat', 'sender', 'created_at', 'is_read')
+    list_filter = ('is_read', 'created_at', 'chat__property__locality__city')
+    search_fields = ('sender__username', 'message', 'chat__property__title')
+    readonly_fields = ('chat', 'sender', 'created_at', 'message')
+    fieldsets = (
+        ('Message Information', {
+            'fields': ('chat', 'sender', 'message', 'is_read', 'created_at')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent manual creation of messages - use API instead"""
+        return False

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import PropertyCard from './components/PropertyCard';
 
 export default function App() {
   const [localities, setLocalities] = useState([]);
@@ -174,15 +175,7 @@ export default function App() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {properties.map((p) => (
-                      <div key={p.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                        <div>
-                          <h4 className="font-bold text-slate-900 text-base">{p.title}</h4>
-                          <p className="text-xs text-slate-500 mt-1">{p.description}</p>
-                        </div>
-                        <div className="mt-4 pt-3 border-t border-slate-100">
-                          <span className="text-base font-extrabold text-slate-900">${parseFloat(p.price).toLocaleString()}</span>
-                        </div>
-                      </div>
+                      <PropertyCard key={p.id} property={p} locality={selectedLocality} />
                     ))}
                   </div>
                 )}

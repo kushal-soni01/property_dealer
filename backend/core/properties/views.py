@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -9,8 +10,8 @@ import logging
 import json
 import requests
 import os
-from .models import Locality, Property
-from .serializers import LocalitySerializer, PropertySerializer
+from .models import Locality, Property, PropertyImage, PropertyHistory, Chat, ChatMessage
+from .serializers import LocalitySerializer, PropertySerializer, PropertyImageSerializer, PropertyHistorySerializer, ChatSerializer, ChatMessageSerializer
 from .tasks import enrich_locality_pipeline
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,133 @@ class LocalityViewSet(viewsets.ModelViewSet):
 class PropertyViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
+
+
+class PropertyImageViewSet(viewsets.ModelViewSet):
+    queryset = PropertyImage.objects.all()
+    serializer_class = PropertyImageSerializer
+    
+    @action(detail=False, methods=['get'])
+    def by_property(self, request):
+        """Get all images for a specific property"""
+        property_id = request.query_params.get('property_id')
+        if not property_id:
+            return Response({'error': 'property_id parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        images = PropertyImage.objects.filter(property_id=property_id)
+        serializer = self.get_serializer(images, many=True)
+        return Response(serializer.data)
+
+
+class PropertyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PropertyHistory.objects.all()
+    serializer_class = PropertyHistorySerializer
+    
+    @action(detail=False, methods=['get'])
+    def by_property(self, request):
+        """Get all history for a specific property"""
+        property_id = request.query_params.get('property_id')
+        if not property_id:
+            return Response({'error': 'property_id parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        history = PropertyHistory.objects.filter(property_id=property_id)
+        serializer = self.get_serializer(history, many=True)
+        return Response(serializer.data)
+
+
+class ChatViewSet(viewsets.ModelViewSet):
+    serializer_class = ChatSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Users can only see their own chats or chats they're admin for"""
+        user = self.request.user
+        return Chat.objects.filter(user=user) | Chat.objects.filter(admin=user)
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new chat for a property when user is interested"""
+        user = request.user
+        property_id = request.data.get('property')
+        
+        if not property_id:
+            return Response({'error': 'property id required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            property_obj = Property.objects.get(id=property_id)
+        except Property.DoesNotExist:
+            return Response({'error': 'Property not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if chat already exists
+        chat, created = Chat.objects.get_or_create(
+            user=user,
+            property=property_obj,
+            defaults={'is_active': True}
+        )
+        
+        serializer = self.get_serializer(chat)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def send_message(self, request, pk=None):
+        """Send a message in a chat"""
+        chat = self.get_object()
+        message_text = request.data.get('message')
+        
+        if not message_text:
+            return Response({'error': 'message required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        message = ChatMessage.objects.create(
+            chat=chat,
+            sender=request.user,
+            message=message_text
+        )
+        
+        serializer = ChatMessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['get'])
+    def messages(self, request, pk=None):
+        """Get all messages in a chat"""
+        chat = self.get_object()
+        messages = chat.messages.all()
+        
+        # Mark all unread messages as read for the current user
+        if request.user == chat.admin:
+            ChatMessage.objects.filter(chat=chat, is_read=False).exclude(sender=request.user).update(is_read=True)
+        
+        serializer = ChatMessageSerializer(messages, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def assign_admin(self, request, pk=None):
+        """Assign an admin to handle the chat"""
+        chat = self.get_object()
+        admin_id = request.data.get('admin_id')
+        
+        if not admin_id:
+            return Response({'error': 'admin_id required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            from django.contrib.auth.models import User
+            admin = User.objects.get(id=admin_id, is_staff=True)
+        except User.DoesNotExist:
+            return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        chat.admin = admin
+        chat.save()
+        
+        serializer = self.get_serializer(chat)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def close(self, request, pk=None):
+        """Close a chat"""
+        chat = self.get_object()
+        chat.is_active = False
+        chat.save()
+        
+        serializer = self.get_serializer(chat)
+        return Response(serializer.data)
 
 
 # ==================== AUTOCOMPLETE & COORDINATE VIEWS ====================
