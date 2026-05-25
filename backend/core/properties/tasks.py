@@ -6,7 +6,7 @@ from .models import Locality, LocalityProfile
 
 @shared_task
 def enrich_locality_pipeline(locality_id):
-    debug_file = "d:\\Broker\\backend\\core\\task_debug.log"
+    debug_file = os.path.join(os.path.dirname(__file__), "task_debug.log")
     try:
         with open(debug_file, "a") as f:
             f.write(f"\n[TASK START] Processing locality_id={locality_id}\n")

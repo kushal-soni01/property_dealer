@@ -3,7 +3,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+# Load .env from backend directory (parent of core)
+ENV_PATH = os.path.join(BASE_DIR.parent, '.env')
+load_dotenv(ENV_PATH)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
@@ -64,7 +66,12 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Only include static dirs if they exist
+STATICFILES_DIRS = []
+if os.path.exists(os.path.join(BASE_DIR.parent, 'properties', 'static')):
+    STATICFILES_DIRS.append(os.path.join(BASE_DIR.parent, 'properties', 'static'))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
@@ -77,7 +84,12 @@ CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
+# Windows compatibility: use solo pool instead of prefork
+import platform
+if platform.system() == 'Windows':
+    CELERY_WORKER_POOL = 'solo'
+
 # Enable eager mode for synchronous task execution (useful when Redis/broker unavailable)
 # Set to False when using a real Celery worker with message broker
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_EAGER_PROPAGATES = False
