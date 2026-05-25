@@ -33,7 +33,7 @@ Copy this checklist and check off as you go:
 - [ ] Name: `broker-backend`
 - [ ] Region: Same as database
 - [ ] Runtime: Python 3
-- [ ] Build Command: `pip install -r backend/requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput`
+- [ ] Build Command: `pip install -r backend/requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput && python create_admin.py`
 - [ ] Start Command: `cd backend/core && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2`
 - [ ] Scroll down → Click "Advanced"
 - [ ] Add Environment Variables (table below)
@@ -50,6 +50,9 @@ DATABASE_URL=<paste PostgreSQL connection string>
 REDIS_URL=<your existing Redis URL>
 GROQ_API_KEY=<your API key>
 SERPAPI_API_KEY=<your API key>
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<strong password>
+ADMIN_EMAIL=admin@yoursite.com
 PYTHONUNBUFFERED=1
 PYTHON_VERSION=3.12.4
 ```

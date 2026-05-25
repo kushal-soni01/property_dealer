@@ -41,7 +41,7 @@ git push origin main
    - **Name**: `broker-backend`
    - **Environment**: `Python 3`
    - **Region**: Same as database
-   - **Build Command**: `pip install -r backend/requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput`
+   - **Build Command**: `pip install -r backend/requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput && python create_admin.py`
    - **Start Command**: `cd backend/core && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2`
    - **Plan**: Free tier
 
@@ -55,6 +55,9 @@ git push origin main
 | `REDIS_URL` | (Your existing remote Redis URL) |
 | `GROQ_API_KEY` | (Your API key from .env) |
 | `SERPAPI_API_KEY` | (Your API key from .env) |
+| `ADMIN_USERNAME` | `admin` (or your preferred username) |
+| `ADMIN_PASSWORD` | (Generate a strong password) |
+| `ADMIN_EMAIL` | `admin@yoursite.com` |
 | `PYTHONUNBUFFERED` | `1` |
 | `PYTHON_VERSION` | `3.12.4` |
 
@@ -169,6 +172,23 @@ axios.get(`${API_BASE}/api/localities/`);
    - ✅ Click "Contact Admin" button
    - ✅ Send a message
    - ✅ Message appears in chat
+
+## Step 11: Access Django Admin Panel
+
+Your superuser account was created automatically during deployment!
+
+1. Go to: `https://broker-backend.onrender.com/admin/`
+2. Login with credentials:
+   - **Username**: `ADMIN_USERNAME` environment variable (default: `admin`)
+   - **Password**: `ADMIN_PASSWORD` environment variable you set during deployment
+
+3. From admin panel you can:
+   - View/manage properties, localities, chats
+   - Create new properties
+   - View chat messages
+   - Manage users
+
+**Note**: The superuser credentials are stored securely in Render environment variables.
 
 ## Troubleshooting
 

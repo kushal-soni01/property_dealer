@@ -12,4 +12,7 @@ python manage.py migrate
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
+echo "Creating superuser..."
+python create_admin.py
+
 echo "Build completed successfully!"
