@@ -13,6 +13,22 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Refresh selected locality every 5 seconds to show AI analysis
+  useEffect(() => {
+    if (!selectedLocality) return;
+    
+    const refreshTimer = setInterval(async () => {
+      try {
+        const res = await axios.get(`http://localhost:8000/api/localities/${selectedLocality.id}/`);
+        setSelectedLocality(res.data);
+      } catch (err) {
+        console.error("Error refreshing locality:", err);
+      }
+    }, 5000);
+    
+    return () => clearInterval(refreshTimer);
+  }, [selectedLocality]);
+
   const fetchLocalities = async () => {
     try {
       const res = await axios.get('http://localhost:8000/api/localities/');
@@ -24,6 +40,17 @@ export default function App() {
 
   const handleLocalitySelect = async (loc) => {
     setSelectedLocality(loc);
+    
+    // Trigger AI enrichment if not already done
+    if (!loc.profile) {
+      try {
+        await axios.post(`http://localhost:8000/api/localities/${loc.id}/enrich/`);
+        console.log(`✓ AI analysis queued for ${loc.name}`);
+      } catch (err) {
+        console.error("Error triggering enrichment:", err);
+      }
+    }
+    
     try {
       const res = await axios.get(`http://localhost:8000/api/localities/${loc.id}/properties/`);
       setProperties(res.data);

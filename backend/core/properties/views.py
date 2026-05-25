@@ -63,6 +63,30 @@ class LocalityViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(locality)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'])
+    def enrich(self, request, pk=None):
+        """Trigger AI enrichment for a locality"""
+        locality = self.get_object()
+        
+        if locality.profile:
+            return Response({
+                "status": "already_enriched",
+                "message": f"Locality '{locality.name}' already has analysis"
+            })
+        
+        try:
+            task_id = enrich_locality_pipeline.delay(locality.id)
+            return Response({
+                "status": "queued",
+                "task_id": str(task_id),
+                "message": f"AI analysis queued for '{locality.name}'. Will complete in 0-5 minutes."
+            })
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=True, methods=['get'])
     def properties(self, request, pk=None):
         locality = self.get_object()

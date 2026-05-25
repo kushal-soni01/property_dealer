@@ -244,11 +244,31 @@ Your superuser account was created automatically during deployment!
 - Login with superuser (create with `python manage.py createsuperuser`)
 
 ### AI Pipeline/Locality Analysis Not Working
-- **Check Celery worker is running**: Go to broker-worker in Render dashboard → check Logs
-- Verify `REDIS_URL` is set correctly in BOTH backend AND worker services
-- Verify `GROQ_API_KEY` is set in worker environment variables
-- Look for error messages in worker logs (should show "Connected to redis://...")
-- If task queue is empty, check that broker-worker service is deployed
+- **Trigger analysis**: When you select a locality on the frontend, it should automatically queue the task
+- **Check Celery worker**: Go to GitHub repo → **Actions** tab → **"Celery Worker - Process Tasks"** → check logs
+- Verify `REDIS_URL` is set in GitHub Secrets
+- Verify `GROQ_API_KEY` is set in GitHub Secrets
+- Look for "Connected to redis://" in the GitHub Actions logs
+
+### Manually Enrich Localities
+
+If GitHub Actions isn't processing tasks, manually enrich:
+
+```bash
+# SSH into Render backend or use shell command:
+cd backend/core
+
+# Enrich all localities without analysis:
+python manage.py enrich_localities
+
+# Enrich specific locality:
+python manage.py enrich_localities --id=1
+
+# Force re-enrich all (including already analyzed):
+python manage.py enrich_localities --all
+```
+
+This queues tasks to Redis. GitHub Actions will pick them up within 5 minutes.
 
 ### To Monitor Celery Tasks
 ```bash
