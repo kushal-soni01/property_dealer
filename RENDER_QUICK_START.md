@@ -80,20 +80,35 @@ PYTHON_VERSION=3.12.4
 - [ ] Click "Manual Deploy" → "Deploy latest commit"
 - [ ] Wait for redeploy
 
-### 6. Test Your App
-- [ ] Open `https://broker-frontend.onrender.com` in browser
-- [ ] Try selecting a locality
-- [ ] Try creating a chat
-- [ ] Check messages work
-- [ ] Open admin: `https://broker-backend.onrender.com/admin/`
-
-### 7. (Optional) Deploy Celery Worker
+### 6. Deploy Celery Worker (REQUIRED for AI Pipeline) ⚠️
 - [ ] Go to Render → New → Background Worker
 - [ ] Name: `broker-worker`
 - [ ] Build Command: `pip install -r backend/requirements.txt`
-- [ ] Start Command: `cd backend/core && celery -A core worker -l info`
-- [ ] Add same environment variables as backend
+- [ ] Start Command: `cd backend/core && celery -A core worker -l info --concurrency=2`
+- [ ] Region: Same as backend
+- [ ] Add SAME environment variables as backend (all of them):
+  ```
+  DEBUG=False
+  SECRET_KEY=<same as backend>
+  DATABASE_URL=<same as backend>
+  REDIS_URL=<your Redis URL>
+  GROQ_API_KEY=<your API key>
+  SERPAPI_API_KEY=<your API key>
+  ADMIN_USERNAME=admin
+  ADMIN_PASSWORD=<same as backend>
+  ADMIN_EMAIL=<same as backend>
+  PYTHONUNBUFFERED=1
+  PYTHON_VERSION=3.12.4
+  ```
 - [ ] Click Create
+- [ ] Wait 5-10 minutes for deployment
+
+### 7. Test Your App
+- [ ] Open `https://broker-frontend.onrender.com` in browser
+- [ ] Try selecting a locality (should trigger AI analysis)
+- [ ] Try creating a chat
+- [ ] Check messages work
+- [ ] Open admin: `https://broker-backend.onrender.com/admin/`
 
 ---
 

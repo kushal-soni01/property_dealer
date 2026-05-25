@@ -150,18 +150,33 @@ axios.get(`${API_BASE}/api/localities/`);
 
 4. Trigger redeploy by pushing a commit or clicking "Manual Deploy"
 
-## Step 9: Deploy Celery Worker (Optional but Recommended)
+## Step 9: Deploy Celery Worker (REQUIRED for AI Pipeline)
+
+**⚠️ IMPORTANT**: The Celery worker is REQUIRED for the AI pipeline to work. Without it, locality analysis (Groq LLM) won't run.
 
 1. In Render: Click "New +" → "Background Worker"
 2. Fill in:
    - **Name**: `broker-worker`
    - **Repository**: Your repo
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `cd backend/core && celery -A core worker -l info`
+   - **Build Command**: `pip install -r backend/requirements.txt`
+   - **Start Command**: `cd backend/core && celery -A core worker -l info --concurrency=2`
    - **Region**: Same as backend
+   - **Plan**: Free tier
 
-3. Add same environment variables as backend
+3. Click "Advanced" → Add ALL same environment variables as backend:
+   - `DEBUG`, `SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`
+   - `GROQ_API_KEY`, `SERPAPI_API_KEY`
+   - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`
+   - `PYTHONUNBUFFERED=1`, `PYTHON_VERSION=3.12.4`
+
 4. Click "Create Background Worker"
+5. Wait 5-10 minutes for deployment
+
+**What it does:**
+- Runs the `enrich_locality_pipeline` task
+- Calls Groq LLM to analyze localities
+- Enriches properties with AI insights
+- Must be running for analysis to work
 
 ## Step 10: Final Testing
 
@@ -210,6 +225,25 @@ Your superuser account was created automatically during deployment!
 - Check if tables exist: Use Django admin at `backend-url/admin`
 - Login with superuser (create with `python manage.py createsuperuser`)
 
+### AI Pipeline/Locality Analysis Not Working
+- **Check Celery worker is running**: Go to broker-worker in Render dashboard → check Logs
+- Verify `REDIS_URL` is set correctly in BOTH backend AND worker services
+- Verify `GROQ_API_KEY` is set in worker environment variables
+- Look for error messages in worker logs (should show "Connected to redis://...")
+- If task queue is empty, check that broker-worker service is deployed
+
+### To Monitor Celery Tasks
+```bash
+# Via Django shell (optional):
+from celery.result import AsyncResult
+from properties.tasks import enrich_locality_pipeline
+
+# Check task status:
+result = AsyncResult('task-id')
+print(result.status)  # PENDING, STARTED, SUCCESS, FAILURE, RETRY
+print(result.result)  # Task output
+```
+
 ### Images not uploading
 - Check `MEDIA_ROOT` and `MEDIA_URL` in Django settings
 - Use cloud storage (S3) for production images
@@ -223,7 +257,9 @@ Your superuser account was created automatically during deployment!
 - [ ] Use Gunicorn/production server
 - [ ] Set up HTTPS (Render does this automatically)
 - [ ] Configure CORS for frontend domain
-- [ ] Test all features end-to-end
+- [ ] **Deploy Celery worker** (REQUIRED for AI pipeline)
+- [ ] Verify Celery worker can connect to Redis
+- [ ] Test all features end-to-end (especially locality analysis)
 - [ ] Set up monitoring/alerts
 - [ ] Backup database regularly
 
