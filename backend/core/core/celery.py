@@ -1,8 +1,22 @@
 import os
-from celery import Celery
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
-app = Celery('core')
-app.config_from_object('django.conf:settings', namespace='CELERY')
-app.autodiscover_tasks()
+try:
+    from celery import Celery
+    
+    app = Celery('core')
+    app.config_from_object('django.conf:settings', namespace='CELERY')
+    app.autodiscover_tasks()
+except ImportError:
+    # Celery not installed - create a mock app for development
+    class MockCeleryApp:
+        def task(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+        
+        def autodiscover_tasks(self):
+            pass
+    
+    app = MockCeleryApp()

@@ -3,12 +3,24 @@ from django.db import models
 class Locality(models.Model):
     name = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    location = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        help_text="Sector/Area/Landmark name (e.g., 'Sector 32', 'Downtown Area')"
+    )
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('latitude', 'longitude')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['latitude', 'longitude'],
+                condition=models.Q(latitude__isnull=False, longitude__isnull=False),
+                name='unique_coordinates'
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name}, {self.city}"
