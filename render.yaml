@@ -21,9 +21,9 @@ services:
     region: ohio  # Change to your preferred region
     plan: starter
     buildCommand: |
-      pip install -r requirements.txt
+      pip install -r backend/requirements.txt
       cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput
-    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --max-requests 1000 --timeout 60
+    startCommand: cd backend/core && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.4
@@ -50,8 +50,8 @@ services:
     runtime: node
     region: ohio  # Change to match backend region
     plan: starter
-    buildCommand: npm install && npm run build
-    staticSiteDir: dist
+    buildCommand: cd frontend && npm install && npm run build
+    staticSiteDir: frontend/dist
     env:
       - key: VITE_API_URL
         value: https://${BACKEND_NAME}.onrender.com/api

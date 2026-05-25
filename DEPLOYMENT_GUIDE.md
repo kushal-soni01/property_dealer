@@ -41,8 +41,8 @@ git push origin main
    - **Name**: `broker-backend`
    - **Environment**: `Python 3`
    - **Region**: Same as database
-   - **Build Command**: `pip install -r requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput`
-   - **Start Command**: `gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --max-requests 1000 --timeout 60`
+   - **Build Command**: `pip install -r backend/requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput`
+   - **Start Command**: `cd backend/core && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2`
    - **Plan**: Free tier
 
 4. Click "Advanced" → Add Environment Variables:
@@ -116,7 +116,7 @@ axios.get(`${API_BASE}/api/localities/`);
    - **Name**: `broker-frontend`
    - **Repository**: Your repo
    - **Branch**: `main`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `cd frontend && npm install && npm run build`
    - **Publish Directory**: `frontend/dist`
 
 3. Click "Advanced" → Add Environment Variables:

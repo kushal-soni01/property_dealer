@@ -33,8 +33,8 @@ Copy this checklist and check off as you go:
 - [ ] Name: `broker-backend`
 - [ ] Region: Same as database
 - [ ] Runtime: Python 3
-- [ ] Build Command: `pip install -r requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput`
-- [ ] Start Command: `gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2`
+- [ ] Build Command: `pip install -r backend/requirements.txt && cd backend/core && python manage.py migrate && python manage.py collectstatic --noinput`
+- [ ] Start Command: `cd backend/core && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2`
 - [ ] Scroll down → Click "Advanced"
 - [ ] Add Environment Variables (table below)
 - [ ] Click Create Web Service
@@ -87,7 +87,7 @@ PYTHON_VERSION=3.12.4
 ### 7. (Optional) Deploy Celery Worker
 - [ ] Go to Render → New → Background Worker
 - [ ] Name: `broker-worker`
-- [ ] Build Command: `pip install -r requirements.txt`
+- [ ] Build Command: `pip install -r backend/requirements.txt`
 - [ ] Start Command: `cd backend/core && celery -A core worker -l info`
 - [ ] Add same environment variables as backend
 - [ ] Click Create
