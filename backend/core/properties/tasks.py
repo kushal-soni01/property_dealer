@@ -11,15 +11,27 @@ def enrich_locality_pipeline(locality_id):
         with open(debug_file, "a") as f:
             f.write(f"\n[TASK START] Processing locality_id={locality_id}\n")
         
-        locality = Locality.objects.get(id=locality_id)
+        # Use get_or_none and proper exception handling
+        from django.db import connections
+        from django.core.exceptions import ObjectDoesNotExist
+        
+        try:
+            locality = Locality.objects.select_related('profile').get(id=locality_id)
+        except Locality.DoesNotExist:
+            with open(debug_file, "a") as f:
+                f.write(f"[ERROR] Locality with ID {locality_id} not found\n")
+            return f"Locality {locality_id} not found"
+        
+        with open(debug_file, "a") as f:
+            f.write(f"[INFO] Found locality: {locality.name}\n")
+        
         serp_key = os.getenv("SERPAPI_API_KEY")
         groq_key = os.getenv("GROQ_API_KEY")
         
         if not serp_key or not groq_key:
             with open(debug_file, "a") as f:
                 f.write(f"[ERROR] Missing API keys: SERPAPI={bool(serp_key)}, GROQ={bool(groq_key)}\n")
-            print("Missing API keys in environment config.")
-            return
+            return f"Missing API keys"
 
         # 1. Query SerpAPI for multiple POI categories like Google Maps
         with open(debug_file, "a") as f:
