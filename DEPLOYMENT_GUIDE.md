@@ -150,33 +150,51 @@ axios.get(`${API_BASE}/api/localities/`);
 
 4. Trigger redeploy by pushing a commit or clicking "Manual Deploy"
 
-## Step 9: Deploy Celery Worker (REQUIRED for AI Pipeline)
+## Step 9: Configure Celery Worker (FREE Option - GitHub Actions)
 
-**⚠️ IMPORTANT**: The Celery worker is REQUIRED for the AI pipeline to work. Without it, locality analysis (Groq LLM) won't run.
+**⚠️ IMPORTANT**: The Celery worker is REQUIRED for the AI pipeline. Render Background Workers are paid, so we use **GitHub Actions** (FREE) to process tasks.
 
-1. In Render: Click "New +" → "Background Worker"
-2. Fill in:
-   - **Name**: `broker-worker`
-   - **Repository**: Your repo
-   - **Build Command**: `pip install -r backend/requirements.txt`
-   - **Start Command**: `cd backend/core && celery -A core worker -l info --concurrency=2`
-   - **Region**: Same as backend
-   - **Plan**: Free tier
+### How It Works:
+- GitHub Actions runs every 5 minutes
+- Picks up queued tasks from Redis
+- Processes them (Groq LLM analysis, etc.)
+- Returns results to database
 
-3. Click "Advanced" → Add ALL same environment variables as backend:
-   - `DEBUG`, `SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`
-   - `GROQ_API_KEY`, `SERPAPI_API_KEY`
-   - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`
-   - `PYTHONUNBUFFERED=1`, `PYTHON_VERSION=3.12.4`
+### Setup:
 
-4. Click "Create Background Worker"
-5. Wait 5-10 minutes for deployment
+1. **Add Secrets to GitHub Repository**:
+   - Go to GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+   - Click **"New repository secret"** and add:
 
-**What it does:**
-- Runs the `enrich_locality_pipeline` task
-- Calls Groq LLM to analyze localities
-- Enriches properties with AI insights
-- Must be running for analysis to work
+   | Secret Name | Value |
+   |------------|-------|
+   | `DATABASE_URL` | PostgreSQL connection string from Render |
+   | `REDIS_URL` | Your remote Redis URL |
+   | `GROQ_API_KEY` | From your .env |
+   | `SERPAPI_API_KEY` | From your .env |
+   | `SECRET_KEY` | Same as Render backend |
+
+2. **Workflow is Already Set Up**:
+   - File: `.github/workflows/celery-worker.yml`
+   - Runs automatically every 5 minutes
+   - Or manually trigger from GitHub Actions tab
+
+3. **Monitor Executions**:
+   - Go to GitHub repo → **Actions** tab
+   - Click **"Celery Worker - Process Tasks"**
+   - View logs to see task processing
+
+### Task Processing Timeline:
+- User selects locality → Task queued to Redis
+- GitHub Actions runs (every 5 min) → Processes task
+- AI analysis completes → Frontend displays results
+- Total delay: 0-5 minutes (acceptable for UX)
+
+**Advantages:**
+- ✅ Completely FREE
+- ✅ No additional services needed
+- ✅ Works with existing Redis
+- ✅ Easy to monitor in GitHub
 
 ## Step 10: Final Testing
 

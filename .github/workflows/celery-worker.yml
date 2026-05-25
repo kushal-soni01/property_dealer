@@ -1,0 +1,44 @@
+name: Celery Worker - Process Tasks
+
+on:
+  schedule:
+    # Run every 5 minutes to process queued tasks
+    - cron: '*/5 * * * *'
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  celery-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Timeout after 10 minutes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Process Celery Tasks
+        env:
+          # Import from GitHub Secrets
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          DEBUG: 'False'
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          PYTHONUNBUFFERED: '1'
+        run: |
+          cd backend/core
+          # Run worker for max 4 minutes (leaves buffer before GitHub timeout)
+          timeout 240 celery -A core worker -l info --concurrency=1 -t 120 || true
+
+      - name: Log Task Completion
+        run: echo "✓ Celery task processing completed"
